@@ -1,3 +1,3 @@
 module.exports = {
-    listenFor: /@lmgtfy /
+    listenFor: /@cylon /
 };
