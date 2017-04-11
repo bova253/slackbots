@@ -2,7 +2,8 @@ var slack,
     config = require('./config'),
     listenFor = config.listenFor,
     request = require('request'),
-    qs = require('querystring');
+    qs = require('querystring'),
+    _ = require('lodash');
 
 commands = {
     google: function (channel, args) {
@@ -18,20 +19,51 @@ commands = {
         if(process.env.wu_token == undefined) {
             console.log("ERROR: No weather underground api key set!");
         } else {
-            var baseUrl = "http://api.wunderground.com/api/" + process.env.wu_token +
-                "/forecast/q/MA/Boston.json";
+            var baseUrl = "http://api.wunderground.com/api/" + process.env.wu_token;
+            var forecastUrl =  baseUrl + "/forecast/q/MA/Boston.json";
+            var tempUrl = baseUrl + "/hourly/q/MA/Boston.json";
 
-            request(baseUrl,
+            var todaysForecast, todaysTemp;
+
+            var done = _.after(2, function() {
+
+                if(todaysForecast != undefined ) {
+                    channel.send(todaysForecast);
+                }
+                if(todaysTemp != undefined) {
+                    channel.send(todaysTemp);
+                }
+            });
+
+            // get forecast
+            request(forecastUrl,
                 function (error, response, body) {
                     if (!error && response.statusCode == 200) {
                         var weatherResp = JSON.parse(body);
-                        var todaysForecast = "Today's forecast: " + weatherResp.forecast.txt_forecast.forecastday[0].fcttext;
+                        todaysForecast = "Today's forecast: " + weatherResp.forecast.txt_forecast.forecastday[0].fcttext;
                         console.log(todaysForecast);
-                        channel.send(todaysForecast);
+                        done();
                     } else if (error) {
-                        console.log("ERROR: Problem retrieving weather!");
+                        console.log("ERROR: Problem retrieving weather forecast!");
                         console.log(error);
-                        channel.send("Problem retrieving weather!")
+                        channel.send("Problem retrieving weather forecast!")
+                    }
+                });
+
+            //get temp
+            request(tempUrl,
+                function (error, response, body) {
+                    if (!error && response.statusCode == 200) {
+                        var weatherResp = JSON.parse(body);
+                        todaysTemp = "Temp: *" + weatherResp.hourly_forecast[0].temp.english +
+                            "F*, Feels like: *" + weatherResp.hourly_forecast[0].feelslike.english +
+                            "F*, Condition: " + weatherResp.hourly_forecast[0].condition;
+                        console.log(todaysTemp);
+                        done();
+                    } else if (error) {
+                        console.log("ERROR: Problem retrieving temperature!");
+                        console.log(error);
+                        channel.send("Problem retrieving temperature!")
                     }
                 });
 
