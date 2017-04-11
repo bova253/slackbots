@@ -3,7 +3,8 @@ var slack,
     listenFor = config.listenFor,
     request = require('request'),
     qs = require('querystring'),
-    _ = require('lodash');
+    _ = require('lodash'),
+    botUtil = require('./util');
 
 commands = {
     google: function (channel, args) {
@@ -19,55 +20,67 @@ commands = {
         if(process.env.wu_token == undefined) {
             console.log("ERROR: No weather underground api key set!");
         } else {
-            var baseUrl = "http://api.wunderground.com/api/" + process.env.wu_token;
-            var forecastUrl =  baseUrl + "/forecast/q/MA/Boston.json";
-            var tempUrl = baseUrl + "/hourly/q/MA/Boston.json";
 
-            var todaysForecast, todaysTemp;
+            //default to boston
+            var loc = args;
+            if(loc == undefined || loc == null || loc == '') {
+                loc = 'Boston';
+            }
+            var locExt = botUtil.findWeatherLocation(loc);
 
-            var done = _.after(2, function() {
+            if(locExt == 'ERROR') {
+                channel.send('Invalid location specified >B[');
+            } else {
+                var baseUrl = "http://api.wunderground.com/api/" + process.env.wu_token;
+                var forecastUrl = baseUrl + "/forecast/q" + locExt;
+                var tempUrl = baseUrl + "/hourly/q" + locExt;
 
-                if(todaysForecast != undefined ) {
-                    channel.send(todaysForecast);
-                }
-                if(todaysTemp != undefined) {
-                    channel.send(todaysTemp);
-                }
-            });
+                var todaysForecast, todaysTemp;
 
-            // get forecast
-            request(forecastUrl,
-                function (error, response, body) {
-                    if (!error && response.statusCode == 200) {
-                        var weatherResp = JSON.parse(body);
-                        todaysForecast = "Today's forecast: " + weatherResp.forecast.txt_forecast.forecastday[0].fcttext;
-                        console.log(todaysForecast);
-                        done();
-                    } else if (error) {
-                        console.log("ERROR: Problem retrieving weather forecast!");
-                        console.log(error);
-                        channel.send("Problem retrieving weather forecast!")
+                var done = _.after(2, function () {
+
+                    if (todaysForecast != undefined) {
+                        channel.send(todaysForecast);
+                    }
+                    if (todaysTemp != undefined) {
+                        channel.send(todaysTemp);
                     }
                 });
 
-            //get temp
-            request(tempUrl,
-                function (error, response, body) {
-                    if (!error && response.statusCode == 200) {
-                        var weatherResp = JSON.parse(body);
-                        todaysTemp = "Temp: *" + weatherResp.hourly_forecast[0].temp.english +
-                            "F*, Feels like: *" + weatherResp.hourly_forecast[0].feelslike.english +
-                            "F*, Condition: " + weatherResp.hourly_forecast[0].condition;
-                        console.log(todaysTemp);
-                        done();
-                    } else if (error) {
-                        console.log("ERROR: Problem retrieving temperature!");
-                        console.log(error);
-                        channel.send("Problem retrieving temperature!")
-                    }
-                });
+                // get forecast
+                request(forecastUrl,
+                    function (error, response, body) {
+                        if (!error && response.statusCode == 200) {
+                            var weatherResp = JSON.parse(body);
+                            todaysForecast = "Today's forecast in " + loc + ": " + weatherResp.forecast.txt_forecast.forecastday[0].fcttext;
+                            console.log(todaysForecast);
+                            done();
+                        } else if (error) {
+                            console.log("ERROR: Problem retrieving weather forecast!");
+                            console.log(error);
+                            channel.send("Problem retrieving weather forecast!")
+                        }
+                    });
 
+                //get temp
+                request(tempUrl,
+                    function (error, response, body) {
+                        if (!error && response.statusCode == 200) {
+                            var weatherResp = JSON.parse(body);
+                            todaysTemp = "Temp: *" + weatherResp.hourly_forecast[0].temp.english +
+                                "F*, Feels like: *" + weatherResp.hourly_forecast[0].feelslike.english +
+                                "F*, Condition: " + weatherResp.hourly_forecast[0].condition +
+                                ", Humidity: " + weatherResp.hourly_forecast[0].humidity + "%";
+                            console.log(todaysTemp);
+                            done();
+                        } else if (error) {
+                            console.log("ERROR: Problem retrieving temperature!");
+                            console.log(error);
+                            channel.send("Problem retrieving temperature!")
+                        }
+                    });
 
+            }
         }
     }
 };
