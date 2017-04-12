@@ -6,5 +6,5 @@ Usage:
 
     
     - <@slackbot name> google <phrase>:  posts a link to www.lmgtfy.com with the aforementioned phrase
-    - <@slackbot name> weather: posts a text string of Boston's daily weather forecast.
-
+    - <@slackbot name> weather <optional location>: posts a text string location's daily weather forecast.  defaults to Boston.
+    - <@slackbot name> wiki <thing you want to search wikipedia for>: self explanatory
