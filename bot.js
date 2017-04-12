@@ -17,18 +17,18 @@ commands = {
 
     //make sure to set env "wu_token"
     weather: function (channel, args) {
-        if(process.env.wu_token == undefined) {
+        if (process.env.wu_token == undefined) {
             console.log("ERROR: No weather underground api key set!");
         } else {
 
             //default to boston
             var loc = args;
-            if(loc == undefined || loc == null || loc == '') {
+            if (loc == undefined || loc == null || loc == '') {
                 loc = 'Boston';
             }
             var locExt = botUtil.findWeatherLocation(loc);
 
-            if(locExt == 'ERROR') {
+            if (locExt == 'ERROR') {
                 channel.send('Invalid location specified >B[');
             } else {
                 var baseUrl = "http://api.wunderground.com/api/" + process.env.wu_token;
@@ -82,6 +82,13 @@ commands = {
 
             }
         }
+    },
+
+    wiki: function (channel, args) {
+        var encodedQuery = qs.stringify({q:args});
+        var wikiUrl = 'https://en.wikipedia.org/wiki/' + encodedQuery.substring(2);
+        console.log("Wiki URL: " + wikiUrl);
+        channel.send(wikiUrl);
     }
 };
 
