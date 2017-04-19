@@ -15,6 +15,56 @@ commands = {
         channel.send(createdLink);
     },
 
+    lmgtfy: function (channel, args) {
+        // var queryString = args.join(' ');
+        console.log("Google query: " + args);
+        var createdLink = "http://lmgtfy.com/?" + qs.stringify({q: args});
+        console.log(createdLink);
+        channel.send(createdLink);
+    },
+
+    define: function (channel, args) {
+        var options = {
+            url: 'https://od-api.oxforddictionaries.com:443/api/v1/entries/en/' + args,
+            headers: {
+                Accept: 'application/json',
+                app_id: process.env.oxford_app_id,
+                app_key: process.env.oxford_app_key
+            }
+        };
+
+        request(options,
+            function (error, response, body) {
+                if (!error && response.statusCode == 200) {
+                    console.log("Dictionary response received.");
+                    var dictionaryResp = JSON.parse(body);
+                    var result = _.head(dictionaryResp.results);
+                    var lexicalEntry = _.head(result.lexicalEntries);
+                    var entry = _.head(lexicalEntry.entries);
+                    var senses = entry.senses;
+                    for (var i = 0; i < senses.length && i < 3; ++i) {
+                        var def = _.head(senses[i].definitions);
+                        var response;
+                        if (def) {
+                            response = (i + 1) + ": " + def;
+                        } else if (senses[i].crossReferenceMarkers != undefined) {
+                            var crossRef = _.head(senses[i].crossReferenceMarkers);
+                            response = (i + 1) + ": " + crossRef;
+                        }
+
+                        if(response) {
+                            console.log(response);
+                            channel.send(response);
+                        }
+                    }
+                } else {
+                    console.log("ERROR: Problem retrieving definition");
+                    console.log(error);
+                    channel.send("Problem retrieving definition!");
+                }
+            });
+    },
+
     //make sure to set env "wu_token"
     weather: function (channel, args) {
         if (process.env.wu_token == undefined) {
@@ -85,7 +135,7 @@ commands = {
     },
 
     wiki: function (channel, args) {
-        var encodedQuery = qs.stringify({q:args});
+        var encodedQuery = qs.stringify({q: args});
         var wikiUrl = 'https://en.wikipedia.org/wiki/' + encodedQuery.substring(2);
         console.log("Wiki URL: " + wikiUrl);
         channel.send(wikiUrl);
